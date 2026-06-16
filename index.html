@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Feed Reader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #e05c00;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #e05c00;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #c04e00;
+        }
+        .feed-item {
+            background: white;
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin-bottom: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .feed-item h2 {
+            margin: 0 0 6px;
+            font-size: 17px;
+        }
+        .feed-item h2 a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .feed-item h2 a:hover {
+            text-decoration: underline;
+        }
+        .feed-item .meta {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .feed-item p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #555;
+        }
+        #status {
+            color: #888;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+        #error {
+            color: red;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>RSS Feed Reader</h1>
+
+    <div class="controls">
+        <input type="text" id="feedUrl" placeholder="Enter RSS feed URL..." value="https://feeds.bbci.co.uk/news/rss.xml" />
+        <button onclick="loadFeed()">Load Feed</button>
+    </div>
+
+    <div id="status"></div>
+    <div id="error"></div>
+    <div id="feed-container"></div>
+
+    <script>
+        // Uses rss2json API as a proxy to bypass CORS restrictions
+        const RSS2JSON_API = "https://api.rss2json.com/v1/api.json?rss_url=";
+
+        async function loadFeed() {
+            const url = document.getElementById("feedUrl").value.trim();
+            const container = document.getElementById("feed-container");
+            const status = document.getElementById("status");
+            const error = document.getElementById("error");
+
+            container.innerHTML = "";
+            error.textContent = "";
+
+            if (!url) {
+                error.textContent = "Please enter a valid RSS feed URL.";
+                return;
+            }
+
+            status.textContent = "Loading feed...";
+
+            try {
+                const response = await fetch(RSS2JSON_API + encodeURIComponent(url));
+                const data = await response.json();
+
+                if (data.status !== "ok") {
+                    throw new Error(data.message || "Failed to load feed.");
+                }
+
+                status.textContent = `Showing ${data.items.length} items from: ${data.feed.title}`;
+
+                data.items.forEach(item => {
+                    const div = document.createElement("div");
+                    div.className = "feed-item";
+
+                    const pubDate = item.pubDate
+                        ? new Date(item.pubDate).toLocaleString()
+                        : "";
+
+                    // Strip HTML tags from description
+                    const tempDiv = document.createElement("div");
+                    tempDiv.innerHTML = item.description || "";
+                    const plainText = tempDiv.textContent || tempDiv.innerText || "";
+
+                    div.innerHTML = `
+                        <h2><a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a></h2>
+                        <div class="meta">${pubDate}${item.author ? " · " + item.author : ""}</div>
+                        <p>${plainText.substring(0, 200)}${plainText.length > 200 ? "..." : ""}</p>
+                    `;
+                    container.appendChild(div);
+                });
+
+            } catch (err) {
+                status.textContent = "";
+                error.textContent = "Error: " + err.message;
+            }
+        }
+
+        // Load default feed on page open
+        loadFeed();
+    </script>
+
+</body>
+</html>
