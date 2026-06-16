@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RSS Feed Reader</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 40px auto;
             padding: 0 20px;
             background: #f5f5f5;
@@ -15,143 +18,189 @@
         }
         h1 {
             color: #e05c00;
+            text-align: center;
+            margin-bottom: 30px;
         }
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+        .feeds-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
         }
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
+        @media (max-width: 900px) {
+            .feeds-grid {
+                grid-template-columns: 1fr;
+            }
         }
-        button {
-            padding: 10px 20px;
-            background: #e05c00;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
+        .feed-column {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.1);
         }
-        button:hover {
-            background: #c04e00;
+        .feed-column h2 {
+            font-size: 16px;
+            margin: 0 0 4px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #e05c00;
+            color: #e05c00;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .feed-status {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+            margin-bottom: 12px;
+            min-height: 16px;
+        }
+        .feed-error {
+            font-size: 13px;
+            color: red;
         }
         .feed-item {
-            background: white;
-            border-radius: 6px;
-            padding: 16px 20px;
-            margin-bottom: 14px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            border-bottom: 1px solid #eee;
+            padding: 12px 0;
         }
-        .feed-item h2 {
-            margin: 0 0 6px;
-            font-size: 17px;
+        .feed-item:last-child {
+            border-bottom: none;
         }
-        .feed-item h2 a {
+        .feed-item h3 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .feed-item h3 a {
             color: #1a73e8;
             text-decoration: none;
         }
-        .feed-item h2 a:hover {
+        .feed-item h3 a:hover {
             text-decoration: underline;
         }
         .feed-item .meta {
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 8px;
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 6px;
         }
         .feed-item p {
             margin: 0;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.5;
             color: #555;
         }
-        #status {
-            color: #888;
-            font-style: italic;
-            margin-bottom: 10px;
-        }
-        #error {
-            color: red;
-            margin-bottom: 10px;
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: #aaa;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
 
-    <h1>RSS Feed Reader</h1>
+    <h1>News Feed Reader</h1>
 
-    <div class="controls">
-        <input type="text" id="feedUrl" placeholder="Enter RSS feed URL..." value="https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml" />
-        <button onclick="loadFeed()">Load Feed</button>
+    <div class="feeds-grid" id="feeds-grid">
+        <!-- Feed columns will be injected here -->
     </div>
 
-    <div id="status"></div>
-    <div id="error"></div>
-    <div id="feed-container"></div>
-
     <script>
-        // Uses rss2json API as a proxy to bypass CORS restrictions
         const RSS2JSON_API = "https://api.rss2json.com/v1/api.json?rss_url=";
 
-        async function loadFeed() {
-            const url = document.getElementById("feedUrl").value.trim();
-            const container = document.getElementById("feed-container");
-            const status = document.getElementById("status");
-            const error = document.getElementById("error");
-
-            container.innerHTML = "";
-            error.textContent = "";
-
-            if (!url) {
-                error.textContent = "Please enter a valid RSS feed URL.";
-                return;
+        const feeds = [
+            {
+                name: "NYT World News",
+                url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+            },
+            {
+                name: "Channel NewsAsia",
+                url: "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml"
+            },
+            {
+                name: "BBC News",
+                url: "http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/front_page/rss.xml"
             }
+        ];
 
-            status.textContent = "Loading feed...";
+        function createFeedColumn(feed) {
+            const col = document.createElement("div");
+            col.className = "feed-column";
+            col.id = `feed-${feed.name.replace(/\s+/g, "-").toLowerCase()}`;
+
+            col.innerHTML = `
+                <h2 title="${feed.name}">${feed.name}</h2>
+                <div class="feed-status" id="status-${col.id}">Loading...</div>
+                <div class="feed-items" id="items-${col.id}">
+                    <div class="loading-spinner">Fetching articles...</div>
+                </div>
+            `;
+
+            return col;
+        }
+
+        function stripHtml(html) {
+            const div = document.createElement("div");
+            div.innerHTML = html || "";
+            return div.textContent || div.innerText || "";
+        }
+
+        async function loadFeed(feed, col) {
+            const statusEl = document.getElementById(`status-${col.id}`);
+            const itemsEl = document.getElementById(`items-${col.id}`);
 
             try {
-                const response = await fetch(RSS2JSON_API + encodeURIComponent(url));
+                const response = await fetch(RSS2JSON_API + encodeURIComponent(feed.url));
                 const data = await response.json();
 
                 if (data.status !== "ok") {
                     throw new Error(data.message || "Failed to load feed.");
                 }
 
-                status.textContent = `Showing ${data.items.length} items from: ${data.feed.title}`;
+                // Update column heading with actual feed title if available
+                const heading = col.querySelector("h2");
+                if (data.feed && data.feed.title) {
+                    heading.textContent = data.feed.title;
+                    heading.title = data.feed.title;
+                }
+
+                statusEl.textContent = `${data.items.length} articles loaded`;
+                itemsEl.innerHTML = "";
 
                 data.items.forEach(item => {
-                    const div = document.createElement("div");
-                    div.className = "feed-item";
-
                     const pubDate = item.pubDate
                         ? new Date(item.pubDate).toLocaleString()
                         : "";
 
-                    // Strip HTML tags from description
-                    const tempDiv = document.createElement("div");
-                    tempDiv.innerHTML = item.description || "";
-                    const plainText = tempDiv.textContent || tempDiv.innerText || "";
+                    const plainText = stripHtml(item.description);
+                    const snippet = plainText.substring(0, 150) + (plainText.length > 150 ? "..." : "");
 
+                    const div = document.createElement("div");
+                    div.className = "feed-item";
                     div.innerHTML = `
-                        <h2><a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a></h2>
+                        <h3><a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a></h3>
                         <div class="meta">${pubDate}${item.author ? " · " + item.author : ""}</div>
-                        <p>${plainText.substring(0, 200)}${plainText.length > 200 ? "..." : ""}</p>
+                        <p>${snippet}</p>
                     `;
-                    container.appendChild(div);
+                    itemsEl.appendChild(div);
                 });
 
             } catch (err) {
-                status.textContent = "";
-                error.textContent = "Error: " + err.message;
+                statusEl.textContent = "";
+                itemsEl.innerHTML = `<div class="feed-error">Could not load feed: ${err.message}</div>`;
             }
         }
 
-        // Load default feed on page open
-        loadFeed();
+        function init() {
+            const grid = document.getElementById("feeds-grid");
+
+            feeds.forEach(feed => {
+                const col = createFeedColumn(feed);
+                grid.appendChild(col);
+                loadFeed(feed, col);
+            });
+        }
+
+        init();
     </script>
 
 </body>
