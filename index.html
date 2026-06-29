@@ -21,7 +21,6 @@
             color: #3c1e0a;
         }
 
-        /* Ambient aura blobs */
         body::before,
         body::after {
             content: '';
@@ -49,11 +48,19 @@
             right: -100px;
         }
 
-        h1 {
+        /* Header area */
+        .header {
             position: relative;
             z-index: 1;
-            text-align: center;
-            margin-bottom: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            margin: 0;
             font-size: 28px;
             font-weight: 600;
             letter-spacing: 0.4px;
@@ -63,6 +70,88 @@
             background-clip: text;
         }
 
+        /* Refresh button */
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(160, 82, 45, 0.1);
+            border: 1px solid rgba(160, 82, 45, 0.3);
+            border-radius: 20px;
+            color: #a0522d;
+            font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(160, 82, 45, 0.18);
+            border-color: rgba(160, 82, 45, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .refresh-btn svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            transition: transform 0.5s ease;
+        }
+
+        .refresh-btn.spinning svg {
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Countdown bar */
+        .countdown-row {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 28px;
+            font-size: 11px;
+            color: rgba(120, 70, 20, 0.5);
+            font-style: italic;
+        }
+
+        .countdown-bar-wrap {
+            width: 120px;
+            height: 3px;
+            background: rgba(160, 82, 45, 0.12);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .countdown-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #a0522d, #c47a2b);
+            border-radius: 2px;
+            width: 100%;
+            transform-origin: left;
+            transition: width 1s linear;
+        }
+
+        /* Grid */
         .feeds-grid {
             position: relative;
             z-index: 1;
@@ -74,6 +163,9 @@
         @media (max-width: 900px) {
             .feeds-grid {
                 grid-template-columns: 1fr;
+            }
+            .header {
+                flex-wrap: wrap;
             }
         }
 
@@ -87,7 +179,7 @@
             box-shadow:
                 0 4px 24px rgba(120, 60, 10, 0.1),
                 inset 0 1px 0 rgba(255, 255, 255, 0.7);
-            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            transition: box-shadow 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
         }
 
         .feed-column:hover {
@@ -95,6 +187,10 @@
                 0 8px 40px rgba(180, 100, 40, 0.2),
                 inset 0 1px 0 rgba(255, 255, 255, 0.8);
             transform: translateY(-2px);
+        }
+
+        .feed-column.refreshing {
+            opacity: 0.6;
         }
 
         .feed-column h2 {
@@ -194,12 +290,30 @@
 </head>
 <body>
 
-    <h1>NewsFeed</h1>
+    <div class="header">
+        <h1>NewsFeed</h1>
+        <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"/>
+                <path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0114.36-3.36L23 10M1 14l5.09 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            Refresh
+        </button>
+    </div>
+
+    <div class="countdown-row">
+        <span id="countdown-label">Next refresh in <strong id="countdown-text">5:00</strong></span>
+        <div class="countdown-bar-wrap">
+            <div class="countdown-bar-fill" id="countdown-bar"></div>
+        </div>
+    </div>
 
     <div class="feeds-grid" id="feeds-grid"></div>
 
     <script>
         const RSS2JSON_API = "https://api.rss2json.com/v1/api.json?rss_url=";
+        const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
         const feeds = [
             {
@@ -216,15 +330,22 @@
             }
         ];
 
+        let pollTimer = null;
+        let countdownTimer = null;
+        let nextRefreshAt = null;
+        let isRefreshing = false;
+
+        // ── DOM helpers ──────────────────────────────────────────────────────────
+
         function createFeedColumn(feed) {
             const col = document.createElement("div");
             col.className = "feed-column";
             col.id = `feed-${feed.name.replace(/\s+/g, "-").toLowerCase()}`;
             col.innerHTML = `
                 <h2 title="${feed.name}">${feed.name}</h2>
-                <div class="feed-status" id="status-${col.id}">Loading...</div>
+                <div class="feed-status" id="status-${col.id}">Loading…</div>
                 <div class="feed-items" id="items-${col.id}">
-                    <div class="loading-spinner">Fetching articles...</div>
+                    <div class="loading-spinner">Fetching articles…</div>
                 </div>
             `;
             return col;
@@ -236,19 +357,32 @@
             return div.textContent || div.innerText || "";
         }
 
+        function formatTime(date) {
+            return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        }
+
+        // ── Feed loading ─────────────────────────────────────────────────────────
+
         async function loadFeed(feed, col) {
             const statusEl = document.getElementById(`status-${col.id}`);
             const itemsEl = document.getElementById(`items-${col.id}`);
+
+            col.classList.add("refreshing");
+
             try {
                 const response = await fetch(RSS2JSON_API + encodeURIComponent(feed.url));
                 const data = await response.json();
+
                 if (data.status !== "ok") throw new Error(data.message || "Failed to load feed.");
-                statusEl.textContent = `${data.items.length} articles loaded`;
+
+                const updatedAt = formatTime(new Date());
+                statusEl.textContent = `${data.items.length} articles · updated ${updatedAt}`;
                 itemsEl.innerHTML = "";
+
                 data.items.forEach(item => {
                     const pubDate = item.pubDate ? new Date(item.pubDate).toLocaleString() : "";
                     const plainText = stripHtml(item.description);
-                    const snippet = plainText.substring(0, 150) + (plainText.length > 150 ? "..." : "");
+                    const snippet = plainText.substring(0, 150) + (plainText.length > 150 ? "…" : "");
                     const div = document.createElement("div");
                     div.className = "feed-item";
                     div.innerHTML = `
@@ -261,16 +395,79 @@
             } catch (err) {
                 statusEl.textContent = "";
                 itemsEl.innerHTML = `<div class="feed-error">Could not load feed: ${err.message}</div>`;
+            } finally {
+                col.classList.remove("refreshing");
             }
         }
+
+        async function refreshAllFeeds() {
+            if (isRefreshing) return;
+            isRefreshing = true;
+
+            const btn = document.getElementById("refresh-btn");
+            btn.disabled = true;
+            btn.classList.add("spinning");
+
+            const cols = document.querySelectorAll(".feed-column");
+            const promises = feeds.map((feed, i) => loadFeed(feed, cols[i]));
+            await Promise.all(promises);
+
+            btn.disabled = false;
+            btn.classList.remove("spinning");
+            isRefreshing = false;
+
+            // Reset the polling clock after every refresh (manual or auto)
+            scheduleNextPoll();
+        }
+
+        // ── Polling & countdown ──────────────────────────────────────────────────
+
+        function scheduleNextPoll() {
+            clearTimeout(pollTimer);
+            clearInterval(countdownTimer);
+
+            nextRefreshAt = Date.now() + POLL_INTERVAL_MS;
+
+            // Auto-poll
+            pollTimer = setTimeout(() => {
+                refreshAllFeeds();
+            }, POLL_INTERVAL_MS);
+
+            // Tick the countdown every second
+            updateCountdown();
+            countdownTimer = setInterval(updateCountdown, 1000);
+        }
+
+        function updateCountdown() {
+            const remaining = Math.max(0, nextRefreshAt - Date.now());
+            const totalSecs = Math.round(remaining / 1000);
+            const mins = Math.floor(totalSecs / 60);
+            const secs = totalSecs % 60;
+
+            document.getElementById("countdown-text").textContent =
+                `${mins}:${String(secs).padStart(2, "0")}`;
+
+            // Shrink the bar left→right as time passes
+            const pct = (remaining / POLL_INTERVAL_MS) * 100;
+            document.getElementById("countdown-bar").style.width = `${pct}%`;
+        }
+
+        // ── Manual refresh ───────────────────────────────────────────────────────
+
+        function manualRefresh() {
+            refreshAllFeeds();
+        }
+
+        // ── Init ─────────────────────────────────────────────────────────────────
 
         function init() {
             const grid = document.getElementById("feeds-grid");
             feeds.forEach(feed => {
                 const col = createFeedColumn(feed);
                 grid.appendChild(col);
-                loadFeed(feed, col);
             });
+
+            refreshAllFeeds(); // initial load (also starts the poll clock)
         }
 
         init();
