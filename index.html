@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Newsfeed</title>
+    <title>NewsFeed</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
 
         * {
             box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', Arial, sans-serif;
+            font-family: 'Plus Jakarta Sans', Arial, sans-serif;
             max-width: 1200px;
             margin: 40px auto;
             padding: 0 20px;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            background: linear-gradient(135deg, #fdf6ec, #f0e6d3, #e8d5b7);
             min-height: 100vh;
-            color: #e0e0f0;
+            color: #3c1e0a;
         }
 
         /* Ambient aura blobs */
@@ -27,8 +27,8 @@
             content: '';
             position: fixed;
             border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.25;
+            filter: blur(90px);
+            opacity: 0.3;
             pointer-events: none;
             z-index: 0;
         }
@@ -36,17 +36,17 @@
         body::before {
             width: 500px;
             height: 500px;
-            background: radial-gradient(circle, #a78bfa, #6d28d9);
-            top: -100px;
-            left: -100px;
+            background: radial-gradient(circle, #f5c98a, #d4845a);
+            top: -120px;
+            left: -120px;
         }
 
         body::after {
             width: 400px;
             height: 400px;
-            background: radial-gradient(circle, #67e8f9, #0891b2);
-            bottom: -80px;
-            right: -80px;
+            background: radial-gradient(circle, #e8c49a, #c47a2b);
+            bottom: -100px;
+            right: -100px;
         }
 
         h1 {
@@ -56,8 +56,8 @@
             margin-bottom: 36px;
             font-size: 28px;
             font-weight: 600;
-            letter-spacing: 0.5px;
-            background: linear-gradient(90deg, #c4b5fd, #93c5fd, #67e8f9);
+            letter-spacing: 0.4px;
+            background: linear-gradient(90deg, #6b3f1f, #a0522d, #c47a2b);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -78,22 +78,22 @@
         }
 
         .feed-column {
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(255, 248, 238, 0.65);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
             border-radius: 16px;
             padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(180, 120, 60, 0.18);
             box-shadow:
-                0 4px 24px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                0 4px 24px rgba(120, 60, 10, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
             transition: box-shadow 0.3s ease, transform 0.3s ease;
         }
 
         .feed-column:hover {
             box-shadow:
-                0 8px 40px rgba(139, 92, 246, 0.25),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+                0 8px 40px rgba(180, 100, 40, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
             transform: translateY(-2px);
         }
 
@@ -103,8 +103,8 @@
             margin: 0 0 4px;
             padding-bottom: 12px;
             border-bottom: 2px solid transparent;
-            border-image: linear-gradient(90deg, #a78bfa, #67e8f9) 1;
-            background: linear-gradient(90deg, #c4b5fd, #93c5fd);
+            border-image: linear-gradient(90deg, #a0522d, #c47a2b) 1;
+            background: linear-gradient(90deg, #6b3f1f, #a0522d);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -116,7 +116,7 @@
 
         .feed-status {
             font-size: 11px;
-            color: rgba(196, 181, 253, 0.55);
+            color: rgba(120, 70, 20, 0.5);
             font-style: italic;
             margin-bottom: 14px;
             min-height: 16px;
@@ -124,11 +124,11 @@
 
         .feed-error {
             font-size: 13px;
-            color: #f87171;
+            color: #c0392b;
         }
 
         .feed-item {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            border-bottom: 1px solid rgba(160, 100, 40, 0.12);
             padding: 13px 0;
             transition: background 0.2s ease, padding 0.2s ease;
         }
@@ -138,7 +138,7 @@
         }
 
         .feed-item:hover {
-            background: rgba(167, 139, 250, 0.05);
+            background: rgba(200, 140, 60, 0.07);
             border-radius: 8px;
             padding-left: 6px;
             padding-right: 6px;
@@ -152,20 +152,20 @@
         }
 
         .feed-item h3 a {
-            color: #c4b5fd;
+            color: #a0522d;
             text-decoration: none;
             transition: color 0.2s ease;
         }
 
         .feed-item h3 a:hover {
-            color: #93c5fd;
+            color: #c47a2b;
             text-decoration: underline;
             text-underline-offset: 3px;
         }
 
         .feed-item .meta {
             font-size: 10.5px;
-            color: rgba(147, 197, 253, 0.45);
+            color: rgba(120, 70, 20, 0.5);
             margin-bottom: 6px;
         }
 
@@ -173,14 +173,14 @@
             margin: 0;
             font-size: 12.5px;
             line-height: 1.55;
-            color: rgba(224, 224, 240, 0.65);
+            color: rgba(60, 30, 10, 0.7);
             font-weight: 300;
         }
 
         .loading-spinner {
             text-align: center;
             padding: 24px;
-            color: rgba(196, 181, 253, 0.4);
+            color: rgba(140, 80, 30, 0.5);
             font-size: 13px;
             font-style: italic;
             animation: pulse 1.6s ease-in-out infinite;
