@@ -156,12 +156,7 @@
                     throw new Error(data.message || "Failed to load feed.");
                 }
 
-                // Update column heading with actual feed title if available
-                const heading = col.querySelector("h2");
-                if (data.feed && data.feed.title) {
-                    heading.textContent = data.feed.title;
-                    heading.title = data.feed.title;
-                }
+                
 
                 statusEl.textContent = `${data.items.length} articles loaded`;
                 itemsEl.innerHTML = "";
