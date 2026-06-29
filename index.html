@@ -5,94 +5,190 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RSS Feed Reader</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
         * {
             box-sizing: border-box;
         }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', Arial, sans-serif;
             max-width: 1200px;
             margin: 40px auto;
             padding: 0 20px;
-            background: #f5f5f5;
-            color: #333;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            color: #e0e0f0;
         }
+
+        /* Ambient aura blobs */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, #a78bfa, #6d28d9);
+            top: -100px;
+            left: -100px;
+        }
+
+        body::after {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #67e8f9, #0891b2);
+            bottom: -80px;
+            right: -80px;
+        }
+
         h1 {
-            color: #e05c00;
+            position: relative;
+            z-index: 1;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 36px;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #c4b5fd, #93c5fd, #67e8f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
+
         .feeds-grid {
+            position: relative;
+            z-index: 1;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
         }
+
         @media (max-width: 900px) {
             .feeds-grid {
                 grid-template-columns: 1fr;
             }
         }
+
         .feed-column {
-            background: white;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow:
+                0 4px 24px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
         }
+
+        .feed-column:hover {
+            box-shadow:
+                0 8px 40px rgba(139, 92, 246, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
         .feed-column h2 {
-            font-size: 16px;
+            font-size: 15px;
+            font-weight: 600;
             margin: 0 0 4px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #e05c00;
-            color: #e05c00;
+            padding-bottom: 12px;
+            border-bottom: 2px solid transparent;
+            border-image: linear-gradient(90deg, #a78bfa, #67e8f9) 1;
+            background: linear-gradient(90deg, #c4b5fd, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            letter-spacing: 0.3px;
         }
+
         .feed-status {
-            font-size: 12px;
-            color: #888;
+            font-size: 11px;
+            color: rgba(196, 181, 253, 0.55);
             font-style: italic;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             min-height: 16px;
         }
+
         .feed-error {
             font-size: 13px;
-            color: red;
+            color: #f87171;
         }
+
         .feed-item {
-            border-bottom: 1px solid #eee;
-            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            padding: 13px 0;
+            transition: background 0.2s ease, padding 0.2s ease;
         }
+
         .feed-item:last-child {
             border-bottom: none;
         }
+
+        .feed-item:hover {
+            background: rgba(167, 139, 250, 0.05);
+            border-radius: 8px;
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+
         .feed-item h3 {
-            margin: 0 0 4px;
-            font-size: 14px;
-            line-height: 1.4;
+            margin: 0 0 5px;
+            font-size: 13.5px;
+            font-weight: 500;
+            line-height: 1.45;
         }
+
         .feed-item h3 a {
-            color: #1a73e8;
+            color: #c4b5fd;
             text-decoration: none;
+            transition: color 0.2s ease;
         }
+
         .feed-item h3 a:hover {
+            color: #93c5fd;
             text-decoration: underline;
+            text-underline-offset: 3px;
         }
+
         .feed-item .meta {
-            font-size: 11px;
-            color: #aaa;
+            font-size: 10.5px;
+            color: rgba(147, 197, 253, 0.45);
             margin-bottom: 6px;
         }
+
         .feed-item p {
             margin: 0;
-            font-size: 13px;
-            line-height: 1.5;
-            color: #555;
+            font-size: 12.5px;
+            line-height: 1.55;
+            color: rgba(224, 224, 240, 0.65);
+            font-weight: 300;
         }
+
         .loading-spinner {
             text-align: center;
-            padding: 20px;
-            color: #aaa;
+            padding: 24px;
+            color: rgba(196, 181, 253, 0.4);
             font-size: 13px;
+            font-style: italic;
+            animation: pulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.9; }
         }
     </style>
 </head>
@@ -100,9 +196,7 @@
 
     <h1>News Feed Reader</h1>
 
-    <div class="feeds-grid" id="feeds-grid">
-        <!-- Feed columns will be injected here -->
-    </div>
+    <div class="feeds-grid" id="feeds-grid"></div>
 
     <script>
         const RSS2JSON_API = "https://api.rss2json.com/v1/api.json?rss_url=";
@@ -126,7 +220,6 @@
             const col = document.createElement("div");
             col.className = "feed-column";
             col.id = `feed-${feed.name.replace(/\s+/g, "-").toLowerCase()}`;
-
             col.innerHTML = `
                 <h2 title="${feed.name}">${feed.name}</h2>
                 <div class="feed-status" id="status-${col.id}">Loading...</div>
@@ -134,7 +227,6 @@
                     <div class="loading-spinner">Fetching articles...</div>
                 </div>
             `;
-
             return col;
         }
 
@@ -147,28 +239,16 @@
         async function loadFeed(feed, col) {
             const statusEl = document.getElementById(`status-${col.id}`);
             const itemsEl = document.getElementById(`items-${col.id}`);
-
             try {
                 const response = await fetch(RSS2JSON_API + encodeURIComponent(feed.url));
                 const data = await response.json();
-
-                if (data.status !== "ok") {
-                    throw new Error(data.message || "Failed to load feed.");
-                }
-
-                
-
+                if (data.status !== "ok") throw new Error(data.message || "Failed to load feed.");
                 statusEl.textContent = `${data.items.length} articles loaded`;
                 itemsEl.innerHTML = "";
-
                 data.items.forEach(item => {
-                    const pubDate = item.pubDate
-                        ? new Date(item.pubDate).toLocaleString()
-                        : "";
-
+                    const pubDate = item.pubDate ? new Date(item.pubDate).toLocaleString() : "";
                     const plainText = stripHtml(item.description);
                     const snippet = plainText.substring(0, 150) + (plainText.length > 150 ? "..." : "");
-
                     const div = document.createElement("div");
                     div.className = "feed-item";
                     div.innerHTML = `
@@ -178,7 +258,6 @@
                     `;
                     itemsEl.appendChild(div);
                 });
-
             } catch (err) {
                 statusEl.textContent = "";
                 itemsEl.innerHTML = `<div class="feed-error">Could not load feed: ${err.message}</div>`;
@@ -187,7 +266,6 @@
 
         function init() {
             const grid = document.getElementById("feeds-grid");
-
             feeds.forEach(feed => {
                 const col = createFeedColumn(feed);
                 grid.appendChild(col);
